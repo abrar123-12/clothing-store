@@ -39,17 +39,22 @@ export default function CheckoutPage() {
       return;
     }
     setPlacing(true);
-    const { data: order, error: e1 } = await supabase.from("orders").insert({
+    // Generate the order id client-side: anon customers may INSERT orders but
+    // (by design) cannot SELECT them back, so .select() after insert would
+    // fail the orders SELECT policy. No returning read is needed.
+    const oid = crypto.randomUUID();
+    const { error: e1 } = await supabase.from("orders").insert({
+      id: oid,
       customer_name: name.trim(), phone: phone.trim(), address: address.trim(), area,
       payment_method: payment, payment_trx: trx.trim() || null,
       subtotal, delivery_charge: delivery, total, status: "Pending"
-    }).select("id").single();
-    if (e1 || !order) { setPlacing(false); return setError("Order failed: " + (e1?.message || "try again")); }
-    const rows = items.map(it => ({ order_id: order.id, product_id: it.product_id, product_name: it.name, size: it.size, price: it.price, qty: it.qty }));
+    });
+    if (e1) { setPlacing(false); return setError("Order failed: " + e1.message); }
+    const rows = items.map(it => ({ order_id: oid, product_id: it.product_id, product_name: it.name, size: it.size, price: it.price, qty: it.qty }));
     const { error: e2 } = await supabase.from("order_items").insert(rows);
     setPlacing(false);
     if (e2) return setError("Order saved but items failed: " + e2.message);
-    setPlacedId(String(order.id));
+    setPlacedId(oid);
     clear();
   };
 
