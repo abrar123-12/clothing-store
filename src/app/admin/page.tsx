@@ -31,7 +31,7 @@ export default function AdminPage() {
   const [catSlug, setCatSlug] = useState("");
   // admin search/filter (client-side, over already-loaded data)
   const [orderQuery, setOrderQuery] = useState("");
-  const [orderStatus, setOrderStatus] = useState("All");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("All");
   const [prodQuery, setProdQuery] = useState("");
 
   const loadAll = useCallback(async () => {
@@ -149,7 +149,7 @@ export default function AdminPage() {
   const todayOrders = orders.filter(o => new Date(o.created_at).toDateString() === today).length;
   const totalRevenue = orders.filter(o => o.status !== "Cancelled").reduce((s, o) => s + Number(o.total), 0);
   const shownOrders = orders.filter(o =>
-    (orderStatus === "All" || o.status === orderStatus) &&
+    (orderStatusFilter === "All" || o.status === orderStatusFilter) &&
     (orderQuery.trim() === "" || o.customer_name.toLowerCase().includes(orderQuery.toLowerCase()) || o.phone.includes(orderQuery.trim()))
   );
   const shownProducts = products.filter(p => prodQuery.trim() === "" || p.name.toLowerCase().includes(prodQuery.toLowerCase()));
@@ -240,7 +240,7 @@ export default function AdminPage() {
         <div className="mt-6 flex flex-col gap-3">
           <div className="flex gap-2 flex-wrap">
             <input className={`${inputCls} flex-1 min-w-[200px]`} placeholder="Search by customer name or phone..." value={orderQuery} onChange={e => setOrderQuery(e.target.value)} />
-            <select className="border rounded-xl px-3 py-2.5 text-sm font-semibold" value={orderStatus} onChange={e => setOrderStatus(e.target.value)}>
+            <select className="border rounded-xl px-3 py-2.5 text-sm font-semibold" value={orderStatusFilter} onChange={e => setOrderStatusFilter(e.target.value)}>
               <option>All</option>
               {STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
             </select>
