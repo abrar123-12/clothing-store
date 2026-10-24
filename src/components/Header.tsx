@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { supabase } from "@/lib/supabase";
 import { fetchCategories, fetchSettings } from "@/lib/data";
 import type { Category, Settings } from "@/lib/types";
 import { defaultSettings, seedCategories } from "@/lib/data";
@@ -12,10 +13,12 @@ export default function Header() {
   const [cats, setCats] = useState<Category[]>(seedCategories);
   const [menu, setMenu] = useState(false);
   const [q, setQ] = useState("");
+  const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
     fetchSettings().then(setSettings).catch(() => {});
     fetchCategories().then(setCats).catch(() => {});
+    supabase?.auth.getSession().then(({ data }) => setLoggedIn(!!data.session)).catch(() => {});
   }, []);
 
   return (
@@ -35,7 +38,7 @@ export default function Header() {
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search..." className="px-3 py-1.5 text-sm outline-none w-32" />
           <button className="px-3 text-lg" aria-label="Search">🔍</button>
         </form>
-        <Link href="/login" className="text-xl ml-auto md:ml-0" aria-label="Account">👤</Link>
+        <Link href={loggedIn ? "/account" : "/login"} className="text-xl ml-auto md:ml-0" aria-label="Account">👤</Link>
         <button onClick={() => setOpen(true)} className="flex items-center gap-1 bg-neutral-900 text-white text-sm font-bold px-3 py-2 rounded-full">
           🛒 <span>{subtotal.toLocaleString("en-IN")} BDT</span>
           {count > 0 && <span className="bg-brand rounded-full w-5 h-5 text-xs flex items-center justify-center">{count}</span>}

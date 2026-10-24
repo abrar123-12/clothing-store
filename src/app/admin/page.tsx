@@ -29,6 +29,10 @@ export default function AdminPage() {
   // category form
   const [catName, setCatName] = useState("");
   const [catSlug, setCatSlug] = useState("");
+  // admin search/filter (client-side, over already-loaded data)
+  const [orderQuery, setOrderQuery] = useState("");
+  const [orderStatus, setOrderStatus] = useState("All");
+  const [prodQuery, setProdQuery] = useState("");
 
   const loadAll = useCallback(async () => {
     if (!supabase) return;
@@ -51,9 +55,9 @@ export default function AdminPage() {
 
   useEffect(() => {
     (async () => {
-      if (!supabase) { router.push("/login"); return; }
+      if (!supabase) { router.push("/admin-login"); return; }
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.push("/login"); return; }
+      if (!session) { router.push("/admin-login"); return; }
       const { data: profile } = await supabase.from("profiles").select("role").eq("id", session.user.id).maybeSingle();
       if (profile?.role !== "admin") { router.push("/"); return; }
       setReady(true);
@@ -141,6 +145,14 @@ export default function AdminPage() {
   const revenue = orders.filter(o => o.status === "Delivered").reduce((s, o) => s + Number(o.total), 0);
   const pending = orders.filter(o => o.status === "Pending").length;
   const lowStock = products.filter(p => Number(p.stock) < 5);
+  const today = new Date().toDateString();
+  const todayOrders = orders.filter(o => new Date(o.created_at).toDateString() === today).length;
+  const totalRevenue = orders.filter(o => o.status !== "Cancelled").reduce((s, o) => s + Number(o.total), 0);
+  const shownOrders = orders.filter(o =>
+    (orderStatus === "All" || o.status === orderStatus) &&
+    (orderQuery.trim() === "" || o.customer_name.toLowerCase().includes(orderQuery.toLowerCase()) || o.phone.includes(orderQuery.trim()))
+  );
+  const shownProducts = products.filter(p => prodQuery.trim() === "" || p.name.toLowerCase().includes(prodQuery.toLowerCase()));
 
   const inputCls = "border rounded-xl px-3 py-2.5 w-full text-sm";
   const labelCls = "text-xs font-bold uppercase text-neutral-500";
@@ -165,6 +177,8 @@ export default function AdminPage() {
             <div className="border rounded-2xl p-4"><p className="text-xs uppercase text-neutral-500 font-bold">Total Orders</p><p className="text-2xl font-black mt-1">{orders.length}</p></div>
             <div className="border rounded-2xl p-4"><p className="text-xs uppercase text-neutral-500 font-bold">Pending Orders</p><p className="text-2xl font-black mt-1 text-amber-600">{pending}</p></div>
             <div className="border rounded-2xl p-4"><p className="text-xs uppercase text-neutral-500 font-bold">Products</p><p className="text-2xl font-black mt-1">{products.length}</p></div>
+            <div className="border rounded-2xl p-4"><p className="text-xs uppercase text-neutral-500 font-bold">Today&apos;s Orders</p><p className="text-2xl font-black mt-1">{todayOrders}</p></div>
+            <div className="border rounded-2xl p-4"><p className="text-xs uppercase text-neutral-500 font-bold">Total Revenue (excl. Cancelled)</p><p className="text-2xl font-black text-brand mt-1">{formatBDT(totalRevenue)}</p></div>
           </div>
           <h3 className="font-display font-extrabold uppercase mt-8 mb-3">⚠️ Low Stock (under 5)</h3>
           {lowStock.length === 0 ? <p className="text-sm text-neutral-500">No low-stock products. Good!</p> : (
@@ -204,7 +218,8 @@ export default function AdminPage() {
             </div>
           </div>
           <div className="lg:col-span-3 flex flex-col gap-2">
-            {products.map(p => (
+            <input className={inputCls} placeholder="Search products by name..." value={prodQuery} onChange={e => setProdQuery(e.target.value)} />
+            {shownProducts.map(p => (
               <div key={p.id} className="border rounded-xl p-3 flex gap-3 items-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p.image_url} alt={p.name} className="w-14 h-14 rounded-lg object-cover" />
@@ -223,7 +238,15 @@ export default function AdminPage() {
 
       {tab === "orders" && (
         <div className="mt-6 flex flex-col gap-3">
-          {orders.map(o => (
+          <div className="flex gap-2 flex-wrap">
+            <input className={`${inputCls} flex-1 min-w-[200px]`} placeholder="Search by customer name or phone..." value={orderQuery} onChange={e => setOrderQuery(e.target.value)} />
+            <select className="border rounded-xl px-3 py-2.5 text-sm font-semibold" value={orderStatus} onChange={e => setOrderStatus(e.target.value)}>
+              <option>All</option>
+              {STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
+            </select>
+          </div>
+          <p className="text-xs text-neutral-500">Showing {shownOrders.length} of {orders.length} orders</p>
+          {shownOrders.map(o => (
             <div key={o.id} className="border rounded-2xl p-4">
               <div className="flex justify-between flex-wrap gap-2">
                 <b>#{String(o.id).slice(0, 8)}</b>

@@ -43,8 +43,12 @@ export default function CheckoutPage() {
     // (by design) cannot SELECT them back, so .select() after insert would
     // fail the orders SELECT policy. No returning read is needed.
     const oid = crypto.randomUUID();
+    // Logged-in customers get their order linked to their account so it
+    // shows in /account; guest orders stay phone-trackable via /track.
+    const { data: { session } } = await supabase.auth.getSession();
     const { error: e1 } = await supabase.from("orders").insert({
       id: oid,
+      user_id: session?.user.id ?? null,
       customer_name: name.trim(), phone: phone.trim(), address: address.trim(), area,
       payment_method: payment, payment_trx: trx.trim() || null,
       subtotal, delivery_charge: delivery, total, status: "Pending"
