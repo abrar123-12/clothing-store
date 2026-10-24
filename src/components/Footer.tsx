@@ -18,7 +18,6 @@ export default function Footer() {
             <div className="mt-3 flex flex-col gap-1 text-neutral-600">
               <Link href="/shop">Shop</Link>
               <Link href="/track">Track Your Order</Link>
-              <Link href="/login">Admin Login</Link>
             </div>
           </div>
           <div>
