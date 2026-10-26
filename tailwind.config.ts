@@ -11,16 +11,16 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          DEFAULT: "#E31837",
-          dark: "#B30F27",
-          light: "#FFF1F2"
+          DEFAULT: "#111111",
+          dark: "#000000",
+          light: "#F5F5F4"
         },
-        blush: "#FDF0EE",
+        blush: "#F1E9DF",
         ink: "#111111"
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
-        display: ["Archivo", "Inter", "system-ui", "sans-serif"]
+        display: ["Playfair Display", "Georgia", "serif"]
       }
     }
   },

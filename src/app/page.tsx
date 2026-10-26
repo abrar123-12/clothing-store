@@ -1,33 +1,26 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { fetchProducts, fetchSettings, defaultSettings } from "@/lib/data";
-import type { Product, Settings } from "@/lib/types";
+import { fetchProducts, fetchSettings, fetchCategories, defaultSettings } from "@/lib/data";
+import type { Product, Settings, Category } from "@/lib/types";
 import ProductCard from "@/components/ProductCard";
 
-const TILES = [
-  { label: "99 DEALS", icon: "🎁", bg: "bg-red-50", link: "/shop?sort=discount" },
-  { label: "HOT SALE", icon: "🔥", bg: "bg-orange-50", link: "/shop?sort=discount" },
-  { label: "NEW ARRIVAL", icon: "✨", bg: "bg-neutral-100", link: "/shop?sort=new" },
-  { label: "FORMAL FEST", icon: "👔", bg: "bg-amber-50", link: "/shop?category=men" }
-];
-
-function Section({ title, products, shopAll }: { title: string; products: Product[]; shopAll: string }) {
+function Row({ title, products, shopAll }: { title: string; products: Product[]; shopAll: string }) {
   const ref = useRef<HTMLDivElement>(null);
   if (products.length === 0) return null;
   const scroll = (dir: number) => ref.current?.scrollBy({ left: dir * 480, behavior: "smooth" });
   return (
-    <section className="max-w-7xl mx-auto px-4 mt-12">
-      <h2 className="text-center font-display font-black uppercase text-2xl sm:text-3xl text-brand">{title}</h2>
-      <div className="relative mt-5">
+    <section className="max-w-7xl mx-auto px-4 mt-10">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display font-bold text-2xl">{title}</h2>
+        <Link href={shopAll} className="text-sm font-semibold text-neutral-500">View All</Link>
+      </div>
+      <div className="relative mt-4">
         <button onClick={() => scroll(-1)} className="hidden sm:flex absolute -left-3 top-1/3 z-10 w-9 h-9 bg-white shadow rounded-full items-center justify-center">‹</button>
         <div ref={ref} className="flex sm:grid sm:grid-cols-3 lg:grid-cols-4 gap-4 overflow-x-auto sm:overflow-visible no-scrollbar snap-x pb-2">
           {products.slice(0, 8).map(p => <ProductCard key={p.id} product={p} />)}
         </div>
         <button onClick={() => scroll(1)} className="hidden sm:flex absolute -right-3 top-1/3 z-10 w-9 h-9 bg-white shadow rounded-full items-center justify-center">›</button>
-      </div>
-      <div className="text-center mt-4">
-        <Link href={shopAll} className="inline-block border-2 border-brand text-brand font-bold px-6 py-2 rounded-full hover:bg-brand hover:text-white transition">Shop All</Link>
       </div>
     </section>
   );
@@ -35,12 +28,15 @@ function Section({ title, products, shopAll }: { title: string; products: Produc
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [slide, setSlide] = useState(0);
+  const [q, setQ] = useState("");
 
   useEffect(() => {
     fetchProducts().then(setProducts).catch(() => {});
     fetchSettings().then(setSettings).catch(() => {});
+    fetchCategories().then(setCategories).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -49,53 +45,75 @@ export default function HomePage() {
   }, [settings.hero_banners.length]);
 
   const banners = settings.hero_banners;
-  const men = products.filter(p => p.category === "men");
-  const women = products.filter(p => p.category === "women");
+  const banner = banners[slide] || banners[0];
   const featured = products.filter(p => p.featured);
 
   return (
-    <div>
-      {/* HERO CAROUSEL */}
-      <div className="relative w-full h-[300px] sm:h-[440px] overflow-hidden bg-neutral-900">
-        {banners.map((b, i) => (
-          <div key={i} className={`absolute inset-0 transition-opacity duration-700 ${i === slide ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={b.image} alt={b.headline} className="w-full h-full object-cover opacity-70" />
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-              <h1 className="font-display font-black uppercase text-white text-3xl sm:text-5xl drop-shadow">{b.headline}</h1>
-              <p className="text-white/90 mt-2 font-medium">{b.subheadline}</p>
-              <Link href={b.link || "/shop"} className="mt-4 bg-brand text-white font-bold px-7 py-3 rounded-full">SHOP NOW</Link>
+    <div className="pb-4">
+      <div className="max-w-7xl mx-auto px-4">
+        {/* Search (like the reference app's home search) */}
+        <form className="mt-4 flex items-center bg-white border border-neutral-200 rounded-full overflow-hidden" onSubmit={e => { e.preventDefault(); if (q.trim()) window.location.href = `/shop?q=${encodeURIComponent(q.trim())}`; }}>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search for shirts, brands..." className="px-4 py-2.5 text-sm outline-none flex-1" />
+          <button className="px-4 text-lg" aria-label="Search">🔍</button>
+        </form>
+
+        {/* HERO — beige panel, text left, image right (reference style) */}
+        {banner && (
+          <div className="mt-4 bg-blush rounded-3xl overflow-hidden">
+            <div className="grid md:grid-cols-2">
+              <div className="p-6 sm:p-10 flex flex-col justify-center">
+                <h1 className="font-display font-bold text-3xl sm:text-5xl leading-tight">{banner.headline}</h1>
+                <p className="text-neutral-600 mt-3">{banner.subheadline}</p>
+                <div className="mt-6">
+                  <Link href={banner.link || "/shop"} className="inline-block bg-neutral-900 text-white font-bold px-7 py-3 rounded-full text-sm">SHOP NOW</Link>
+                </div>
+                <div className="flex gap-2 mt-8">
+                  {banners.map((_, i) => <button key={i} onClick={() => setSlide(i)} className={`h-1.5 rounded-full transition-all ${i === slide ? "w-8 bg-neutral-900" : "w-3 bg-neutral-300"}`} aria-label={`Slide ${i + 1}`} />)}
+                </div>
+              </div>
+              <div className="relative h-64 md:h-auto md:min-h-[380px] bg-neutral-200">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={banner.image} alt={banner.headline} className="absolute inset-0 w-full h-full object-cover" />
+              </div>
             </div>
           </div>
-        ))}
-        <button onClick={() => setSlide((slide - 1 + banners.length) % banners.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full text-xl">‹</button>
-        <button onClick={() => setSlide((slide + 1) % banners.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full text-xl">›</button>
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
-          {banners.map((_, i) => <button key={i} onClick={() => setSlide(i)} className={`w-2.5 h-2.5 rounded-full ${i === slide ? "bg-brand" : "bg-white/70"}`} aria-label={`Slide ${i + 1}`} />)}
+        )}
+
+        {/* Trust row (like the reference app) */}
+        <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+          <div className="bg-white rounded-2xl py-4 px-2"><p className="text-xl">🛡️</p><p className="text-xs sm:text-sm font-semibold mt-1">Premium Quality</p></div>
+          <div className="bg-white rounded-2xl py-4 px-2"><p className="text-xl">🔁</p><p className="text-xs sm:text-sm font-semibold mt-1">Easy Returns</p></div>
+          <div className="bg-white rounded-2xl py-4 px-2"><p className="text-xl">🔒</p><p className="text-xs sm:text-sm font-semibold mt-1">Secure Payment</p></div>
         </div>
+
+        {/* Shop By Category — circles (reference style) */}
+        {categories.length > 0 && (
+          <section className="mt-10">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display font-bold text-2xl">Shop By Category</h2>
+              <Link href="/shop" className="text-sm font-semibold text-neutral-500">View All</Link>
+            </div>
+            <div className="flex gap-5 mt-4 overflow-x-auto no-scrollbar pb-1">
+              {categories.map(c => {
+                const first = products.find(p => p.category === c.slug);
+                return (
+                  <Link key={c.slug} href={`/shop?category=${c.slug}`} className="flex flex-col items-center gap-2 shrink-0">
+                    <span className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-blush flex items-center justify-center">
+                      {first
+                        ? <img src={first.image_url} alt={c.name} className="w-full h-full object-cover" loading="lazy" />
+                        : <span className="font-display font-bold text-2xl">{c.name.charAt(0)}</span>}
+                    </span>
+                    <span className="text-sm font-medium">{c.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </div>
 
-      {/* PROMO TILES */}
-      <div className="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {TILES.map(t => (
-          <Link key={t.label} href={t.link} className={`${t.bg} rounded-2xl p-4 flex items-center gap-3 border`}>
-            <span className="text-3xl">{t.icon}</span>
-            <span className="font-display font-extrabold uppercase">{t.label}</span>
-          </Link>
-        ))}
-      </div>
-
-      {/* TRUST STRIP */}
-      <div className="max-w-7xl mx-auto px-4 mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 text-center text-sm font-semibold">
-        <div className="border rounded-2xl py-3">💵 Cash on Delivery — All Bangladesh</div>
-        <div className="border rounded-2xl py-3">🚚 Delivery: Dhaka ৳{settings.delivery_dhaka} / Outside ৳{settings.delivery_outside}</div>
-        <div className="border rounded-2xl py-3">🔁 7-Day Easy Exchange</div>
-      </div>
-
-      <Section title="New Arrival" products={products} shopAll="/shop?sort=new" />
-      <Section title="Best Selling" products={featured.length ? featured : products} shopAll="/shop" />
-      <Section title="Mens Collection" products={men} shopAll="/shop?category=men" />
-      <Section title="Ladies Collection" products={women} shopAll="/shop?category=women" />
+      <Row title="Best Sellers" products={featured.length ? featured : products} shopAll="/shop" />
+      <Row title="New Arrival" products={products} shopAll="/shop?sort=new" />
     </div>
   );
 }

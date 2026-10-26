@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import Header from "@/components/Header";
+import BottomNav from "@/components/BottomNav";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 
@@ -16,8 +17,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <CartProvider>
           <Header />
-          <main className="min-h-[70vh]">{children}</main>
+          <main className="min-h-[70vh] pb-16 md:pb-0">{children}</main>
           <Footer />
+          <BottomNav />
           <CartDrawer />
         </CartProvider>
       </body>
